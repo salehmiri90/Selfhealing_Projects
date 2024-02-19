@@ -1,0 +1,18 @@
+---
+- name: Manage HPE physical server using iLO module by Jenkins
+  hosts: all
+  gather_facts: no
+  vars:
+          - ansible_python_interpreter: /usr/bin/python3
+          - ansible_host_key_checking: no
+          - validate_certs: no
+  tasks:
+          - name: Power off HPE Physical Servers
+            hpilo_boot:
+                    host: "{{ ilo_ip }}"
+                    login: "administrator"
+                    password: "password"
+                    state: "poweroff"
+                    force: true
+            delegate_to: localhost
+
