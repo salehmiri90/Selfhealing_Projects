@@ -5,38 +5,34 @@ pipeline {
         stage('Monitor Server Pings') {
             steps {
                 script {
-					def SERVER_IPILO_MAP = ['rhel-srv01':'172.12.3.11','rhel-srv02':'172.12.3.12','rhel-srv03':'172.12.3.11']
+		    def SERVER_IPILO_MAP = ['rhel-srv01':'172.12.3.11','rhel-srv02':'172.12.3.12','rhel-srv03':'172.12.3.11']
                     def recipients = "salehmiri90@gmail.com,"
-					def reboot_msg = "This server is rebooted by Jenkins because packetLoss was 100%, Please check your service or if you think it is a wrong message please ignore it or contact Jenkins administrator (Saleh Miri)"
+		    def reboot_msg = "This server is rebooted by Jenkins because packetLoss was 100%, Please check your service or if you think it is a wrong message please ignore it or contact Jenkins administrator (Saleh Miri)"
                     def afterReboot_msg = "This server was rebooted and now the server is up, Please check your service."
 
                     for (server in SERVER_IPILO_MAP.keySet()) {
-                    
                         def pingResult = sh(script: "ping -c 10 $server | grep 'packet loss' | awk -F',' '{print \$4}' | awk '{print \$1}'", returnStdout: true).trim()
                         if (pingResult != 'time') {
-							echo "Ping result after time check is $pingResult, thus going for action"
-							
-                            def packetLoss = pingResult.take(pingResult.size() - 1) as Integer
+				echo "Ping result after time check is $pingResult, thus going for action"
+                            	def packetLoss = pingResult.take(pingResult.size() - 1) as Integer
                         	if (packetLoss == 100) {
-								sh "sudo -u ansible ansible-playbook ilo_reboot.yaml -i all --limit ${server} -e 'ilo_ip=${SERVER_IPILO_MAP[server]}'"
-								def title = "Run action for ${server} by Jenkins"
-								emailext attachLog: true, to: recipients, subject: title, body: reboot_msg
-								sleep 90
+					sh "sudo -u ansible ansible-playbook ilo_reboot.yaml -i all --limit ${server} -e 'ilo_ip=${SERVER_IPILO_MAP[server]}'"
+					def title = "Run action for ${server} by Jenkins"
+					emailext attachLog: true, to: recipients, subject: title, body: reboot_msg
+					sleep 90
                         
-                                def pingResultAfterSleep = sh(script: "ping -c 4 $server | grep 'packet loss' | awk -F',' '{print \$3}' | awk '{print \$1}'", returnStdout: true).trim()
-								if (pingResultAfterSleep <= '30%') {
-                                    emailext body: afterReboot_msg, to: recipients, subject: title
+                                	def pingResultAfterSleep = sh(script: "ping -c 4 $server | grep 'packet loss' | awk -F',' '{print \$3}' | awk '{print \$1}'", returnStdout: true).trim()
+					if (pingResultAfterSleep <= '30%') {
+                                    		emailext body: afterReboot_msg, to: recipients, subject: title
+                                	} else {
+                                    		echo "Continue steps"
+                                	}
                                 } else {
-                                    echo "Continue steps"
-                                }
-                                
-							} else {
-								echo "Packet loss for ${server} is ${packetLoss}%. No action required."
-							}
-
-						} else {
-								echo "No action required"
-						}
+					echo "Packet loss for ${server} is ${packetLoss}%. No action required."
+				}
+			} else {
+				echo "No action required"
+			}
                     }
                 }
             }
